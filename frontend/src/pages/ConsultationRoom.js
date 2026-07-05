@@ -1,0 +1,425 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, PhoneOff, Video, VideoOff, Mic, MicOff, MessageCircle, X, Monitor } from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { connect } from 'twilio-video';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const API = `${BACKEND_URL}/api`;
+
+function useWindowWidth() {
+  const [w, setW] = React.useState(window.innerWidth);
+  React.useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
+
+const font = "'Plus Jakarta Sans','Segoe UI',sans-serif";
+const mono = "'JetBrains Mono','Courier New',monospace";
+
+export default function ConsultationRoom() {
+  const { appointmentId } = useParams();
+  const navigate = useNavigate();
+  const { user, token } = useAuth();
+  const w = useWindowWidth();
+  const isMobile = w < 768;
+
+  const [appointment, setAppointment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [inMeeting, setInMeeting] = useState(false);
+  const [error, setError] = useState(null);
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isChatOnly, setIsChatOnly] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCameraOn, setIsCameraOn] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [participants, setParticipants] = useState([]);
+
+  const roomRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const screenTrackRef = useRef(null);
+  const websocketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  const WS_URL = String(BACKEND_URL).replace('https://', 'wss://').replace('http://', 'ws://');
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    const fetchAppointment = async () => {
+      try {
+        const res = await axios.get(`${API}/appointments/${appointmentId}`);
+        setAppointment(res.data);
+        if (res.data.consultation_type === 'chat') {
+          setIsChatOnly(true);
+          setShowChat(true);
+        }
+        try {
+          const msgRes = await axios.get(`${API}/chat/messages/${appointmentId}?limit=50&skip=0`);
+          if (msgRes.data?.length > 0) {
+            setMessages(msgRes.data.map(m => ({
+              id: m.id, sender_id: m.sender_id,
+              sender_role: m.sender_role, message: m.message
+            })));
+          }
+        } catch {}
+      } catch {
+        toast.error('Failed to fetch appointment');
+        navigate(user?.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (appointmentId) fetchAppointment();
+  }, [appointmentId]);
+
+  useEffect(() => {
+    if (!token || !appointment) return;
+    const ws = new WebSocket(`${WS_URL}/api/ws/consultation/${appointmentId}`);
+    websocketRef.current = ws;
+    ws.onopen = () => { ws.send(JSON.stringify({ type: 'auth', token })); };
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'chat_message') {
+        setMessages(prev => [...prev, {
+          id: data.id || Date.now(),
+          sender_id: data.from_user_id,
+          sender_role: data.from_role,
+          message: data.message
+        }]);
+      }
+      if (data.type === 'auth_success') toast.success('Connected to consultation room');
+    };
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) ws.close(1000, 'Component unmounting');
+    };
+  }, [token, appointment]);
+
+  // LOCAL VIDEO attach helper
+  const attachLocalVideo = (room) => {
+    room.localParticipant.videoTracks.forEach(publication => {
+      const track = publication.track;
+      if (track && localVideoRef.current) {
+        localVideoRef.current.innerHTML = '';
+        const el = track.attach();
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.objectFit = 'cover';
+        el.style.borderRadius = '8px';
+        localVideoRef.current.appendChild(el);
+      }
+    });
+  };
+
+  // REMOTE TRACK attach helper
+  const attachTrack = (track) => {
+    if (track.kind === 'video' && remoteVideoRef.current) {
+      const el = track.attach();
+      el.style.width = '100%';
+      el.style.height = '100%';
+      el.style.objectFit = 'cover';
+      remoteVideoRef.current.innerHTML = '';
+      remoteVideoRef.current.appendChild(el);
+    }
+    if (track.kind === 'audio') {
+      const el = track.attach();
+      el.style.display = 'none';
+      document.body.appendChild(el);
+    }
+  };
+
+  const handleRemoteParticipant = (participant) => {
+    // Already subscribed tracks
+    participant.tracks.forEach(publication => {
+      if (publication.isSubscribed && publication.track) {
+        attachTrack(publication.track);
+      }
+      // Subscribe hone ka wait karo
+      publication.on('subscribed', track => attachTrack(track));
+    });
+    participant.on('trackSubscribed', track => attachTrack(track));
+    participant.on('trackUnsubscribed', track => track.detach());
+  };
+
+  const startVideoCall = async () => {
+    try {
+      toast.loading('Starting video consultation...');
+      const res = await axios.post(
+        `${API}/twilio/token`,
+        {
+          roomName: `consultation-${appointmentId}`,
+          identity: user?.full_name || user?.email || String(user?.id)
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const twilioToken = res.data.token;
+      toast.dismiss();
+
+      const room = await connect(twilioToken, {
+        name: `consultation-${appointmentId}`,
+        audio: true,
+        video: { width: 640, facingMode: 'user' }
+      });
+
+      roomRef.current = room;
+      setInMeeting(true);
+      toast.success('Video call started!');
+
+      // Local video attach — slight delay for DOM ready
+      setTimeout(() => attachLocalVideo(room), 300);
+
+      // Existing remote participants
+      room.participants.forEach(participant => {
+        handleRemoteParticipant(participant);
+        setParticipants(prev => [...prev, participant.identity]);
+      });
+
+      // New participant joined
+      room.on('participantConnected', participant => {
+        toast.success(`${participant.identity} joined!`);
+        handleRemoteParticipant(participant);
+        setParticipants(prev => [...prev, participant.identity]);
+      });
+
+      // Participant left
+      room.on('participantDisconnected', participant => {
+        if (remoteVideoRef.current) remoteVideoRef.current.innerHTML = '';
+        setParticipants(prev => prev.filter(p => p !== participant.identity));
+        toast.error(`${participant.identity} left`);
+      });
+
+    } catch (err) {
+      toast.dismiss();
+      console.error('Twilio error:', err);
+      setError('Failed to start video call. Please try again.');
+      toast.error('Failed to start video call');
+    }
+  };
+
+  const toggleMic = () => {
+    if (!roomRef.current) return;
+    roomRef.current.localParticipant.audioTracks.forEach(publication => {
+      if (isMicOn) { publication.track.disable(); toast('Mic muted'); }
+      else { publication.track.enable(); toast('Mic unmuted'); }
+    });
+    setIsMicOn(!isMicOn);
+  };
+
+  const toggleCamera = () => {
+    if (!roomRef.current) return;
+    roomRef.current.localParticipant.videoTracks.forEach(publication => {
+      if (isCameraOn) { publication.track.disable(); toast('Camera off'); }
+      else { publication.track.enable(); toast('Camera on'); }
+    });
+    setIsCameraOn(!isCameraOn);
+  };
+
+  const toggleScreenShare = async () => {
+    if (!roomRef.current) return;
+    if (!isScreenSharing) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = stream.getTracks()[0];
+        await roomRef.current.localParticipant.publishTrack(screenTrack);
+        screenTrackRef.current = screenTrack;
+        screenTrack.onended = () => stopScreenShare();
+        setIsScreenSharing(true);
+        toast.success('Screen sharing started');
+      } catch { toast.error('Screen share failed'); }
+    } else { stopScreenShare(); }
+  };
+
+  const stopScreenShare = () => {
+    if (screenTrackRef.current) {
+      roomRef.current?.localParticipant.unpublishTrack(screenTrackRef.current);
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+    setIsScreenSharing(false);
+    toast('Screen sharing stopped');
+  };
+
+  const endCall = () => {
+    if (roomRef.current) {
+      roomRef.current.localParticipant.videoTracks.forEach(p => { p.track.stop(); p.track.detach(); });
+      roomRef.current.localParticipant.audioTracks.forEach(p => { p.track.stop(); });
+      roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+    // Audio elements cleanup
+    document.querySelectorAll('audio').forEach(el => el.remove());
+    if (websocketRef.current?.readyState === WebSocket.OPEN) {
+      websocketRef.current.send(JSON.stringify({ type: 'leave' }));
+      websocketRef.current.close();
+    }
+    navigate(user?.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+    if (websocketRef.current?.readyState === WebSocket.OPEN) {
+      websocketRef.current.send(JSON.stringify({ type: 'chat_message', message: newMessage }));
+      setNewMessage('');
+    } else { toast.error('Not connected to chat'); }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#0f172a', color:'#fff', fontFamily:font }}>
+        Loading...
+      </div>
+    );
+  }
+
+  const ControlBar = () => (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'12px 0', background:'#0f172a' }}>
+      <button onClick={toggleMic} title={isMicOn ? 'Mute' : 'Unmute'} style={{ width:44, height:44, borderRadius:'50%', border:'none', background:isMicOn?'#334155':'#dc2626', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        {isMicOn ? <Mic size={18} color="#fff"/> : <MicOff size={18} color="#fff"/>}
+      </button>
+      <button onClick={toggleCamera} title={isCameraOn ? 'Camera off' : 'Camera on'} style={{ width:44, height:44, borderRadius:'50%', border:'none', background:isCameraOn?'#334155':'#dc2626', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        {isCameraOn ? <Video size={18} color="#fff"/> : <VideoOff size={18} color="#fff"/>}
+      </button>
+      {!isMobile && (
+        <button onClick={toggleScreenShare} title="Screen share" style={{ width:44, height:44, borderRadius:'50%', border:'none', background:isScreenSharing?'#4f46e5':'#334155', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+          <Monitor size={18} color="#fff"/>
+        </button>
+      )}
+      <button onClick={endCall} title="End call" style={{ width:44, height:44, borderRadius:'50%', border:'none', background:'#dc2626', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+        <PhoneOff size={18} color="#fff"/>
+      </button>
+    </div>
+  );
+
+  const ChatPanel = () => (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'#fff', borderRadius:isMobile?0:16, overflow:'hidden' }}>
+      <div style={{ padding:'12px 16px', borderBottom:'1px solid #f3f4f6', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <h3 style={{ fontSize:14, fontWeight:700, color:'#1e293b', margin:0 }}>{isChatOnly ? 'Chat Consultation' : 'Chat'}</h3>
+        {isMobile && !isChatOnly && (
+          <button onClick={() => setShowChat(false)} style={{ background:'none', border:'none', cursor:'pointer', color:'#6b7280' }}><X size={18}/></button>
+        )}
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px', display:'flex', flexDirection:'column', gap:8 }}>
+        {messages.length === 0 ? (
+          <p style={{ textAlign:'center', color:'#9ca3af', fontSize:13, margin:'auto 0', fontFamily:mono }}>No messages yet. Start the conversation!</p>
+        ) : (
+          messages.map((msg, i) => (
+            <div key={msg.id || i} style={{ display:'flex', justifyContent:msg.sender_id === user?.id ? 'flex-end' : 'flex-start' }}>
+              <div style={{ maxWidth:'80%', borderRadius:14, padding:'8px 12px', background:msg.sender_id === user?.id ? '#4f46e5' : '#f1f5f9', color:msg.sender_id === user?.id ? '#fff' : '#1e293b' }}>
+                <p style={{ fontSize:10, fontWeight:600, marginBottom:3, opacity:0.75, fontFamily:mono }}>{msg.sender_role === 'doctor' ? 'Doctor' : 'Patient'}</p>
+                <p style={{ fontSize:13, margin:0, lineHeight:1.5 }}>{msg.message}</p>
+              </div>
+            </div>
+          ))
+        )}
+        <div ref={messagesEndRef}/>
+      </div>
+      <form onSubmit={handleSendMessage} style={{ display:'flex', gap:8, padding:'12px', borderTop:'1px solid #f3f4f6' }}>
+        <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..."
+          style={{ flex:1, padding:'10px 14px', border:'1px solid #e5e7eb', borderRadius:999, fontSize:13, outline:'none', fontFamily:font, background:'#f9fafb' }}/>
+        <button type="submit" disabled={!newMessage.trim()}
+          style={{ width:38, height:38, borderRadius:'50%', background:'#4f46e5', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0, opacity:!newMessage.trim()?0.5:1 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+  );
+
+  const VideoArea = () => (
+    <div style={{ background:'#1e293b', borderRadius:isMobile?12:16, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:isMobile?280:400, flex:1, position:'relative' }}>
+      {!inMeeting ? (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          {error ? (
+            <div style={{ textAlign:'center', color:'#fff', padding:'2rem' }}>
+              <p style={{ color:'#fca5a5', marginBottom:12 }}>{error}</p>
+              <button onClick={() => setError(null)} style={{ padding:'8px 20px', background:'#334155', border:'none', borderRadius:999, color:'#fff', cursor:'pointer' }}>Retry</button>
+            </div>
+          ) : (
+            <div style={{ textAlign:'center', color:'#fff', padding:'2rem' }}>
+              <div style={{ width:70, height:70, borderRadius:'50%', background:'#334155', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px' }}>
+                <Video size={30} color="#4f46e5"/>
+              </div>
+              <p style={{ color:'#94a3b8', fontSize:isMobile?13:15, marginBottom:6 }}>Ready to start video consultation</p>
+              <p style={{ color:'#64748b', fontSize:11, marginBottom:20, fontFamily:mono }}>Powered by Twilio</p>
+              <button onClick={startVideoCall}
+                style={{ padding:isMobile?'10px 24px':'14px 40px', background:'#4f46e5', border:'none', borderRadius:999, color:'#fff', fontSize:isMobile?13:15, fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:8 }}>
+                <Video size={isMobile?16:20}/>
+                Start Video Call
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ flex:1, position:'relative', minHeight:isMobile?280:400 }}>
+          {/* Remote video — bada */}
+          <div ref={remoteVideoRef}
+            style={{ width:'100%', height:'100%', background:'#0f172a', minHeight:isMobile?240:360, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            {participants.length === 0 && (
+              <p style={{ color:'#475569', fontSize:13, fontFamily:mono }}>Waiting for other participant...</p>
+            )}
+          </div>
+          {/* Local video — chota corner mein */}
+          <div ref={localVideoRef}
+            style={{ position:'absolute', bottom:12, right:12, width:isMobile?90:130, height:isMobile?68:98, borderRadius:8, overflow:'hidden', border:'2px solid #4f46e5', background:'#334155', zIndex:10 }}/>
+          {/* Status badges */}
+          <div style={{ position:'absolute', top:8, left:8, display:'flex', gap:6, zIndex:10 }}>
+            {!isMicOn && <span style={{ background:'#dc2626', borderRadius:999, padding:'2px 8px', fontSize:10, color:'#fff', fontFamily:mono }}>Muted</span>}
+            {!isCameraOn && <span style={{ background:'#dc2626', borderRadius:999, padding:'2px 8px', fontSize:10, color:'#fff', fontFamily:mono }}>Cam Off</span>}
+            {isScreenSharing && <span style={{ background:'#4f46e5', borderRadius:999, padding:'2px 8px', fontSize:10, color:'#fff', fontFamily:mono }}>Sharing Screen</span>}
+          </div>
+        </div>
+      )}
+      {inMeeting && <ControlBar/>}
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight:'100vh', background:'#0f172a', fontFamily:font }} data-testid="consultation-room">
+      <header style={{ background:'#1e293b', borderBottom:'1px solid #334155', padding:'0 1rem' }}>
+        <div style={{ height:isMobile?52:56, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <button onClick={endCall} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid #475569', background:'transparent', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#94a3b8' }}>
+              <ArrowLeft size={15}/>
+            </button>
+            <h1 style={{ fontSize:isMobile?13:15, fontWeight:700, color:'#f1f5f9', margin:0 }}>
+              {isChatOnly ? 'Chat Consultation' : 'Video Consultation'}
+            </h1>
+            <span style={{ fontSize:10, padding:'2px 8px', borderRadius:999, background:inMeeting?'#059669':'#2563eb', color:'#fff', fontFamily:mono }}>
+              {inMeeting ? '● In Meeting' : '● Ready'}
+            </span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            {isMobile && !isChatOnly && (
+              <button onClick={() => setShowChat(s => !s)}
+                style={{ width:32, height:32, borderRadius:'50%', border:'none', background:showChat?'#4f46e5':'#334155', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                <MessageCircle size={15} color="#fff"/>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+      <div style={{ padding:isMobile?'0.75rem':'1.25rem', height:`calc(100vh - ${isMobile?52:56}px)`, display:'flex', flexDirection:'column', boxSizing:'border-box' }}>
+        {isChatOnly ? (
+          <div style={{ flex:1, maxWidth:720, margin:'0 auto', width:'100%' }}><ChatPanel/></div>
+        ) : isMobile ? (
+          showChat ? <div style={{ flex:1 }}><ChatPanel/></div> : <VideoArea/>
+        ) : (
+          <div style={{ flex:1, display:'grid', gridTemplateColumns:'1fr 340px', gap:'1rem' }}>
+        t    <VideoArea/>
+            <ChatPanel/>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
