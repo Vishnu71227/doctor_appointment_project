@@ -32,7 +32,7 @@ async function seedTestUsers() {
       { email: 'doctor@healthline.com' },
       {
         $set: {
-          full_name: 'Dr. Annu Sharma',
+          full_name: 'Dr. Annu',
           password: doctorPassword,
           role: 'doctor',
           phone: '+919876543210',
@@ -49,7 +49,7 @@ async function seedTestUsers() {
       await usersCollection.insertOne({
         id: 'doctor-001',
         email: 'doctor@healthline.com',
-        full_name: 'Dr. Annu Sharma',
+        full_name: 'Dr. Annu',
         password: doctorPassword,
         role: 'doctor',
         phone: '+919876543210',

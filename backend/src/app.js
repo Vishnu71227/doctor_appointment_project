@@ -23,7 +23,7 @@ import blogRoutes from './routes/blog.routes.js';
 import medicalRecordRoutes from './routes/medicalRecord.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import passport from './config/passport.js';
-import reviewRoutes from './routes/review.route.js';
+import reviewRoutes from './routes/review.routes.js';
 import zoomRoutes from './routes/zoom.routes.js';
 import twilioRoutes from './routes/twilio.routes.js';
 

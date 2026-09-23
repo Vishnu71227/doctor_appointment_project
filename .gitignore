@@ -72,8 +72,6 @@ pip-delete-this-directory.txt
 test_reports/
 .pytest_cache/
 
-# Emergent specific
-.emergent/
 memory/
 
 # Misc

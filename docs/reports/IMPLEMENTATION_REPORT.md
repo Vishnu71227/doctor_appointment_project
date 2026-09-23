@@ -96,8 +96,8 @@ Successfully migrated HealthLine telemedicine platform from Python FastAPI to No
 - [x] Auto-complete appointment on prescription creation
 
 #### 9. Doctor Profile
-- [x] Updated to Dr. Annu Sharma:
-  - Full Name: Dr. Annu Sharma
+- [x] Updated to Dr. Annu:
+  - Full Name: Dr. Annu
   - Qualification: MD (Ayurveda) | Postgraduate Physician | IMS-BHU Graduate
   - Specialization: General Physician, Gynecologist & Women's Health
   - Fees: ₹100
@@ -252,7 +252,7 @@ These features are implemented but will use mock/fallback behavior when API keys
 - Enforce completed status: Working
 
 ✅ **Doctor Profile**
-- Get profile: Working (Dr. Annu Sharma data)
+- Get profile: Working (Dr. Annu data)
 - Available time slots: Working (18 slots returned)
 
 ✅ **Testimonials**
@@ -366,7 +366,7 @@ All variables have defaults or auto-generation:
 4. **Security**: Enhanced security measures implemented
 5. **Maintainability**: Modular, documented, testable code
 6. **Production-Ready**: Logging, error handling, rate limiting
-7. **Doctor Profile**: Updated to Dr. Annu Sharma
+7. **Doctor Profile**: Updated to Dr. Annu
 8. **Review System**: Implemented and tested (MANDATORY)
 9. **Real-time**: Socket.IO and WebSocket working
 10. **WhatsApp**: Reminders scheduled (not OTP) ✅
@@ -427,7 +427,7 @@ The migration is **100% complete** with all requirements met:
 ✅ Multi-channel OTP (SMS/Email)
 ✅ WhatsApp reminders (BullMQ + Redis)
 ✅ Review/rating system (MANDATORY)
-✅ Doctor profile updated (Dr. Annu Sharma)
+✅ Doctor profile updated (Dr. Annu)
 ✅ Production-ready (logging, security, error handling)
 ✅ Frontend compatibility maintained
 ✅ Docker-compose configuration

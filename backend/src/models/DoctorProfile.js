@@ -4,7 +4,7 @@ const doctorProfileSchema = new mongoose.Schema(
   {
     full_name: {
       type: String,
-      default: 'Dr. Annu Sharma',
+      default: 'Dr. Annu',
     },
     specialization: {
       type: [String],

@@ -1,4 +1,4 @@
-import ReviewForm from '@/components/ReviewForm';
+import ReviewForm from '@/components/reviews/ReviewForm';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Video, MessageCircle, FileText, LogOut, Activity } from 'lucide-react';

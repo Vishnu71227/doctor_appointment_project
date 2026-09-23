@@ -180,7 +180,7 @@ REACT_APP_RAZORPAY_KEY_ID=your_razorpay_key_id
 - Digital prescription generation (PDF)
 - Medical history management
 - Review & rating system (post-appointment)
-- Doctor profile (Dr. Annu Sharma)
+- Doctor profile (Dr. Annu)
 
 ✅ **Production-Ready**
 - Structured logging (Pino)
@@ -194,7 +194,7 @@ REACT_APP_RAZORPAY_KEY_ID=your_razorpay_key_id
 
 ## 👩‍⚕️ Doctor Profile
 
-**Dr. Annu Sharma**
+**Dr. Annu**
 - **Qualification**: MD (Ayurveda) | Postgraduate Physician | IMS-BHU Graduate
 - **Specialization**: General Physician, Gynecologist & Women's Health
 - **Experience**: 8+ years
@@ -394,7 +394,7 @@ Proprietary - All rights reserved
 - ✅ WhatsApp reminders (BullMQ + Redis)
 - ✅ Review & rating system
 - ✅ Enhanced security (Helmet, rate limiting, validation)
-- ✅ Doctor profile updated to Dr. Annu Sharma
+- ✅ Doctor profile updated to Dr. Annu
 
 ### Technical Improvements
 - ✅ Modular code structure

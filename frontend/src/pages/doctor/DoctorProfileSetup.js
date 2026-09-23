@@ -23,7 +23,7 @@ export default function DoctorProfileSetup() {
 
   // Form state
   const [form, setForm] = useState({
-    full_name: 'Dr. Annu Sharma',
+    full_name: 'Dr. Annu',
     bio: '',
     specialization: [],
     qualifications: '',
@@ -57,7 +57,7 @@ export default function DoctorProfileSetup() {
       const res = await axios.get(`${API}/doctor/profile`);
       const p = res.data;
       setForm({
-        full_name: p.full_name || 'Dr. Annu Sharma',
+        full_name: p.full_name || 'Dr. Annu',
         bio: p.bio || '',
         specialization: p.specialization || [],
         qualifications: p.qualifications || '',
@@ -231,7 +231,7 @@ export default function DoctorProfileSetup() {
                   value={form.full_name}
                   onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))}
                   className="w-full border rounded-xl px-4 py-2 text-sm"
-                  placeholder="Dr. Annu Sharma"
+                  placeholder="Dr. Annu"
                 />
               </div>
 

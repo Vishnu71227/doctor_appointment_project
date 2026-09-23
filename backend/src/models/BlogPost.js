@@ -27,7 +27,7 @@ const blogPostSchema = new mongoose.Schema(
     },
     author: {
       type: String,
-      default: 'Dr. Annu Sharma',
+      default: 'Dr. Annu',
     },
     published_at: {
       type: Date,

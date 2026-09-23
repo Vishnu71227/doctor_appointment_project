@@ -7,7 +7,7 @@ TypeError: Cannot read properties of null (reading 'traverse')
   at /app/frontend/plugins/visual-edits/babel-metadata-plugin.js:936:44
 ```
 
-This was caused by Emergent's visual-edits Babel plugin having issues with the LandingPage.js component.
+This was caused by a visual-edits Babel plugin having issues with the LandingPage.js component.
 
 ## Solution Applied
 

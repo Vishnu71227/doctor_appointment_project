@@ -1,32 +1,32 @@
 import React, { useEffect } from "react";
 import "@/App.css";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
-import LandingPage from "@/pages/LandingPage";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
+import LandingPage from "@/pages/public/LandingPage";
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
 import axios from "axios";
 
 // Lazy load heavy secure portal routes
-const PatientDashboard = React.lazy(() => import("@/pages/PatientDashboard"));
-const DoctorDashboard = React.lazy(() => import("@/pages/DoctorDashboard"));
-const BookAppointment = React.lazy(() => import("@/pages/BookAppointment"));
-const ConsultationRoom = React.lazy(() => import("@/pages/ConsultationRoom"));
-const PrescriptionsPage = React.lazy(() => import("@/pages/PrescriptionsPage"));
-const MedicalHistory = React.lazy(() => import("@/pages/MedicalHistory"));
-const CreatePrescription = React.lazy(() => import("@/pages/CreatePrescription"));
-const BlogList = React.lazy(() => import("@/pages/BlogList"));
-const BlogPost = React.lazy(() => import("@/pages/BlogPost"));
-const PaymentHistory = React.lazy(() => import("@/pages/PaymentHistory"));
+const PatientDashboard = React.lazy(() => import("@/pages/patient/PatientDashboard"));
+const DoctorDashboard = React.lazy(() => import("@/pages/doctor/DoctorDashboard"));
+const BookAppointment = React.lazy(() => import("@/pages/patient/BookAppointment"));
+const ConsultationRoom = React.lazy(() => import("@/pages/consultation/ConsultationRoom"));
+const PrescriptionsPage = React.lazy(() => import("@/pages/patient/PrescriptionsPage"));
+const MedicalHistory = React.lazy(() => import("@/pages/patient/MedicalHistory"));
+const CreatePrescription = React.lazy(() => import("@/pages/doctor/CreatePrescription"));
+const BlogList = React.lazy(() => import("@/pages/blog/BlogList"));
+const BlogPost = React.lazy(() => import("@/pages/blog/BlogPost"));
+const PaymentHistory = React.lazy(() => import("@/pages/patient/PaymentHistory"));
 
-import TermsConditions from "@/pages/TermsConditions";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-import RefundPolicy from "@/pages/RefundPolicy";
-import GoogleRoleSelect from "@/pages/GoogleRoleSelect";
-import ForgotPassword from "@/pages/ForgotPassword";
-import AdminDashboard from "@/pages/AdminDashboard";
-import DoctorProfileSetup from "@/pages/DoctorProfileSetup";
+import TermsConditions from "@/pages/public/TermsConditions";
+import PrivacyPolicy from "@/pages/public/PrivacyPolicy";
+import RefundPolicy from "@/pages/public/RefundPolicy";
+import GoogleRoleSelect from "@/pages/auth/GoogleRoleSelect";
+import ForgotPassword from "@/pages/auth/ForgotPassword";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import DoctorProfileSetup from "@/pages/doctor/DoctorProfileSetup";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 // Google OAuth token handler

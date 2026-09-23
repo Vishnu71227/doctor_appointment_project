@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta
 
 class PrescriptionWorkflowTester:
-    def __init__(self, base_url="https://consultation-fixes.preview.emergentagent.com/api"):
+    def __init__(self, base_url="http://localhost:8001/api"):
         self.base_url = base_url
         self.patient_token = None
         self.doctor_token = None

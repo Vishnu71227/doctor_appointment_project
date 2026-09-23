@@ -40,7 +40,7 @@ const testUsers = [
   },
   {
     email: 'doctor@healthline.com',
-    full_name: 'Dr. Annu Sharma',
+    full_name: 'Dr. Annu',
     password: 'doctor123',
     role: 'doctor',
     phone: '+919876543211',
@@ -91,7 +91,7 @@ for (const userData of testUsers) {
 
 // Seed Doctor Profile
 const doctorProfileSchema = new mongoose.Schema({
-  full_name: { type: String, default: 'Dr. Annu Sharma' },
+  full_name: { type: String, default: 'Dr. Annu' },
   specialization: { type: [String], default: ['General Physician', "Gynecologist & Women's Health"] },
   qualifications: { type: String, default: 'MD (Ayurveda) | Postgraduate Physician | IMS-BHU Graduate' },
   experience_years: { type: Number, default: 8 },
@@ -112,7 +112,7 @@ try {
   const existingProfile = await DoctorProfile.findOne();
   if (!existingProfile) {
     await DoctorProfile.create({});
-    console.log('✅ Doctor profile created: Dr. Annu Sharma');
+    console.log('✅ Doctor profile created: Dr. Annu');
   } else {
     console.log('⏭️  Doctor profile already exists');
   }

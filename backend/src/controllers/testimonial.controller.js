@@ -26,7 +26,7 @@ class TestimonialController {
             patient_name: 'Verified Patient',
             rating: 5,
             comment:
-              'The online consultation was incredibly convenient and professional. Dr. Annu Sharma took the time to understand my concerns and provided excellent guidance. Highly recommend for anyone seeking quality Ayurvedic healthcare from home.',
+              'The online consultation was incredibly convenient and professional. Dr. Annu took the time to understand my concerns and provided excellent guidance. Highly recommend for anyone seeking quality Ayurvedic healthcare from home.',
           },
           {
             id: generateId(),

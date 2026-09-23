@@ -12,8 +12,8 @@ A complete telemedicine platform featuring video consultations, real-time chat, 
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/healthline-telemedicine.git
-cd healthline-telemedicine
+git clone https://github.com/Vishnu71227/doctor_appointment_project.git
+cd doctor_appointment_project
 
 # Start all services
 docker-compose up -d
@@ -26,16 +26,16 @@ docker-compose up -d
 ```
 
 ### Option 2: Production Docker-Compose (Optimized)
-When pushing to a droplet or production VPS, utilize the natively bundled optimized multi-stage build scripts natively mapping explicit healthchecks mapping:
+For deploying to a production server or VPS, use the production compose file, which includes multi-stage builds and health checks:
 
 ```bash
-# 1. Provide an explicit production URL to backend API locally
+# 1. Set the production backend API URL
 export REACT_APP_BACKEND_URL="https://api.yourclinic.com"
 
-# 2. Build and boot daemon natively detached scaling seamlessly
+# 2. Build and start the containers in detached mode
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
-This architecture natively bounds MongoDB & Redis inside isolated Docker networks securely mapping frontend NGINX routing explicitly scaling seamlessly onto port `:80`.
+This setup runs MongoDB and Redis inside isolated Docker networks, with the frontend served via NGINX on port `:80`.
 
 ### Option 3: Manual Setup
 
@@ -662,52 +662,73 @@ curl -X POST http://localhost:8001/api/auth/login \
 
 ```
 healthline-telemedicine/
-├── backend/
+├── backend/                     # Node.js + Express API
 │   ├── src/
-│   │   ├── config/          # Configuration
-│   │   ├── routes/          # API routes
-│   │   ├── controllers/     # Request handlers
-│   │   ├── services/        # Business logic
-│   │   ├── models/          # Database models
-│   │   ├── middlewares/     # Express middlewares
-│   │   ├── workers/         # BullMQ workers
-│   │   ├── utils/           # Utilities
-│   │   ├── app.js           # Express app
-│   │   ├── server.js        # HTTP + Socket.IO + WebSocket
-│   │   ├── socket.js        # Socket.IO handlers
-│   │   └── ws.video.js      # Video signaling
-│   ├── package.json
+│   │   ├── config/              # DB, Redis, CORS, env, passport
+│   │   ├── routes/              # URL -> controller mapping (*.routes.js)
+│   │   ├── controllers/         # Request/response handling (*.controller.js)
+│   │   ├── services/            # Business logic (*.service.js)
+│   │   ├── models/              # Mongoose models (PascalCase.js)
+│   │   ├── middlewares/         # Auth, validation, rate-limit, errors
+│   │   ├── workers/             # BullMQ background workers
+│   │   ├── utils/               # Helpers, loggers
+│   │   ├── app.js               # Express app (middleware + routes)
+│   │   ├── server.js            # HTTP + Socket.IO + WebSocket bootstrap
+│   │   ├── socket.js            # Socket.IO handlers (chat)
+│   │   └── ws.video.js          # Video signaling
+│   ├── scripts/                 # One-off scripts (seed admin/users, test data)
+│   ├── Dockerfile
 │   ├── .env.example
-│   └── README.md
+│   └── package.json
 │
-├── frontend/
+├── frontend/                    # React (CRA + craco) app
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── pages/           # Page components
-│   │   ├── context/         # React context
-│   │   ├── hooks/           # Custom hooks
-│   │   └── lib/             # Utilities
+│   │   ├── pages/               # One folder per area of the product
+│   │   │   ├── public/          #   Landing, Terms, Privacy, Refund
+│   │   │   ├── auth/            #   Login, Register, ForgotPassword, GoogleRoleSelect
+│   │   │   ├── patient/         #   Dashboard, BookAppointment, MedicalHistory, ...
+│   │   │   ├── doctor/          #   Dashboard, ProfileSetup, CreatePrescription
+│   │   │   ├── consultation/    #   Video/chat consultation room
+│   │   │   ├── blog/            #   BlogList, BlogPost
+│   │   │   └── admin/           #   All Admin* pages
+│   │   ├── components/
+│   │   │   ├── ui/              #   shadcn/ui primitives (generated - don't hand-edit)
+│   │   │   ├── common/          #   App-wide components (ErrorBoundary)
+│   │   │   └── reviews/         #   Review feature components
+│   │   ├── context/             # React context providers (AuthContext)
+│   │   ├── hooks/               # Custom hooks
+│   │   └── lib/                 # Utilities
 │   ├── public/
-│   ├── package.json
-│   └── .env.example
+│   ├── nginx/                   # Production nginx config
+│   └── package.json
 │
-├── docker-compose.yml
-├── .gitignore
+├── tests/
+│   └── api/                     # Python API/integration tests (need a running backend)
+│
+├── docs/
+│   ├── setup/                   # Setup guides (WhatsApp/auth, download/zip)
+│   ├── git/                     # GitHub push instructions
+│   ├── reports/                 # Implementation & production-readiness reports
+│   └── design/                  # design_guidelines.json
+│
+├── docker-compose.yml           # Local development stack
+├── docker-compose.prod.yml      # Production stack
+├── CONTRIBUTING.md              # Where things go + conventions
 └── README.md
 ```
 
 ---
 
-## 👨‍⚕️ Doctor Profile
+## 👨‍⚕️ Doctor Profile (Sample Data)
 
-**Dr. Annu Sharma**
-- **Qualification**: MD (Ayurveda) | Postgraduate Physician | IMS-BHU Graduate
+**Dr. Annu**
+- **Qualification**: MD (Ayurveda) | Postgraduate Physician
 - **Specialization**: General Physician, Gynecologist & Women's Health
 - **Experience**: 8+ years
-- **Consultation Fee**: ₹100
+- **Consultation Fee**: ₹100 (sample)
 - **Available**: Monday to Friday (6:00pm to 8:00pm)
 - **Languages**: Hindi, English
-- **About**: MD (Ayurveda Samhita & Siddhant) physician with advanced knowledge of classical Ayurvedic texts and principles. Trained at IMS-BHU, dedicated to delivering authentic, evidence-based, and patient-centered Ayurvedic care with focus on root-cause treatment and holistic healing.
+- **About**: Sample seed-data profile used to demonstrate the doctor-profile and consultation-booking features of this project.
 
 ---
 
@@ -815,7 +836,7 @@ For issues or questions:
 - ✅ WhatsApp reminders with BullMQ
 - ✅ Review & rating system
 - ✅ Production-ready security & logging
-- ✅ Doctor profile updated to Dr. Annu Sharma
+- ✅ Doctor profile module updated with sample seed data
 - ✅ Comprehensive documentation
 
 ---

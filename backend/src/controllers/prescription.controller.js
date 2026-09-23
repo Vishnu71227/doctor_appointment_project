@@ -91,7 +91,7 @@ class PrescriptionController {
       doc.moveDown();
 
       // Doctor info
-      doc.fontSize(12).fillColor('black').text(doctorProfile.full_name || 'Dr. Annu Sharma', { bold: true });
+      doc.fontSize(12).fillColor('black').text(doctorProfile.full_name || 'Dr. Annu', { bold: true });
       doc.fontSize(10).text(doctorProfile.qualifications || '');
       doc.text(`Registration No: ${doctorProfile.registration_number || ''}`);
       doc.moveDown();

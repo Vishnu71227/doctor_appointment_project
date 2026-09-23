@@ -177,7 +177,7 @@ REDIS_PORT=6379
 
 ## 👥 Default Doctor Profile
 
-**Dr. Annu Sharma**
+**Dr. Annu**
 - MD (Ayurveda) | Postgraduate Physician | IMS-BHU Graduate
 - Specialization: General Physician, Gynecologist & Women's Health
 - Consultation Fee: ₹100

@@ -203,7 +203,7 @@ PAYMENT_TEST_MODE=false
 CORS_ORIGINS=https://yourdomain.com
 
 # AI Chatbot
-EMERGENT_LLM_KEY=sk-emergent-your-key
+LLM_API_KEY=your_llm_api_key
 
 # Email (Optional)
 RESEND_API_KEY=re_your_resend_key
