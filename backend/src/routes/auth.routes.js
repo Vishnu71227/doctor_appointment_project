@@ -15,15 +15,15 @@ const router = express.Router();
 
 // ── Cookie config ───────────────────────────────────────────
 const COOKIE_OPTIONS = {
-  httpOnly: true,       // ✅ XSS protection — JS se accessible nahi
-  secure: true,         // ✅ HTTPS only
-  sameSite: 'strict',   // ✅ CSRF protection
-  maxAge: 15 * 60 * 1000, // 15 minutes
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none',
+  maxAge: 24 * 60 * 60 * 1000,
   path: '/',
 };
 
 const setTokenCookie = (res, token) => res.cookie('auth_token', token, COOKIE_OPTIONS);
-const clearTokenCookie = (res) => res.clearCookie('auth_token', { path: '/' });
+const clearTokenCookie = (res) => res.clearCookie('auth_token', { path: '/', httpOnly: true, secure: true, sameSite: 'none' });
 
 // ── Validation Schemas ──────────────────────────────────────
 const strongPassword = z.string()
@@ -36,7 +36,7 @@ const strongPassword = z.string()
 const registerSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email address'),
-    full_name: z.string().min(2).max(100), // ✅ max length fix
+    full_name: z.string().min(2).max(100), //  max length fix
     password: strongPassword.optional(),
     phone: z.string().optional(),
     role: z.enum(['patient', 'doctor']).optional(),
@@ -84,14 +84,14 @@ const resetPasswordSchema = z.object({
     user_id: z.string(),
     otp_id: z.string(),
     otp: z.string().length(6),
-    new_password: strongPassword, // ✅ strong password validation reset pe bhi
+    new_password: strongPassword, 
   }),
 });
 
 // ── Public Routes ───────────────────────────────────────────
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 
-// ✅ FIX: Login — token httpOnly cookie mein set karo
+// Login — set token in httpOnly cookie 
 router.post('/login', authLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -107,7 +107,7 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res, next)
   }
 });
 
-// ✅ NEW: Logout — backend token blacklist karo
+
 router.post('/logout', authMiddleware, async (req, res) => {
   try {
     const token = req.cookies?.auth_token || req.headers.authorization?.substring(7);
